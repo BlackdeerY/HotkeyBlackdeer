@@ -112,6 +112,36 @@ func setVolume(volume: Float) {
     }
 }
 
+let NX_KEYTYPE_SOUND_UP: UInt32 = 0
+let NX_KEYTYPE_SOUND_DOWN: UInt32 = 1
+let NX_KEYTYPE_PLAY: UInt32 = 16
+let NX_KEYTYPE_NEXT: UInt32 = 17
+let NX_KEYTYPE_PREVIOUS: UInt32 = 18
+let NX_KEYTYPE_FAST: UInt32 = 19
+let NX_KEYTYPE_REWIND: UInt32 = 20
+
+func HIDPostAuxKey(key: UInt32) {
+    func doKey(down: Bool) {
+        let flags = NSEvent.ModifierFlags(rawValue: (down ? 0xa00 : 0xb00))
+        let data1 = Int((key<<16) | (down ? 0xa00 : 0xb00))
+
+        let ev = NSEvent.otherEvent(with: NSEvent.EventType.systemDefined,
+                                    location: NSPoint(x:0,y:0),
+                                    modifierFlags: flags,
+                                    timestamp: 0,
+                                    windowNumber: 0,
+                                    context: nil,
+                                    subtype: 8,
+                                    data1: data1,
+                                    data2: -1
+                                    )
+        let cev = ev?.cgEvent
+        cev?.post(tap: CGEventTapLocation.cghidEventTap)
+    }
+    doKey(down: true)
+    doKey(down: false)
+}
+
 let eventMask = (1 << CGEventType.keyDown.rawValue)
 
 guard let eventTap = CGEvent.tapCreate(
@@ -149,50 +179,58 @@ guard let eventTap = CGEvent.tapCreate(
                     }
                     overlayWindow.showFor(seconds: 2)
                 }
-            } else if (modifierString == "option+shift") {
-                if (keyCode == 103 || keyCode == 111) {    // F11, F12
-                    if let currentVolume = getCurrentVolume() {
-//                        print("Current Volume: \(currentVolume)%")
-//                        let adjustedVolume: Float = floor((round(currentVolume * 10) / 10) / volumeStep) * volumeStep
-//                        let adjustedVolume: Float = floor(currentVolume / volumeStep) * volumeStep
-//                        var newVolume = adjustedVolume
-                        var newVolume: Float = floor(currentVolume / volumeStep) * volumeStep
-                        var messageString: String
-                        var willChange = false
-                        if (keyCode == 103) {    // F11
-                            if (currentVolume == 0.0) {
-                                messageString = "무음🚫"
-                            } else {
-                                messageString = "감소⬇️"
-                                if ((currentVolume - newVolume) < floatPrecision) {
-                                    newVolume -= volumeStep
-                                }
-                                willChange = true
-                            }
-                        } else {
-                            if (currentVolume == 1.0) {
-                                messageString = "최대📢"
-                            } else {
-                                messageString = "증가⬆️"
-                                newVolume += volumeStep
-                                if ((newVolume - currentVolume) < floatPrecision) {
-                                    newVolume += volumeStep
-                                }
-                                willChange = true
-                            }
-                        }
-                        if (newVolume > 1.0) {
-                            newVolume = 1.0
-                        } else if (newVolume < 0.0) {
-                            newVolume = 0.0
-                        }
-//                        print("\(currentVolume) -> \(adjustedVolume) -> \(newVolume)")
-                        if (willChange) {
-                            setVolume(volume: newVolume)
-                        }
-                        overlayWindow.setMessage(message: "🔈볼륨 \(messageString) \(Int(round(newVolume * 100)))")
-                        overlayWindow.showFor(seconds: 2)
-                    }
+//            } else if (modifierString == "option+shift") {
+//                if (keyCode == 103 || keyCode == 111) {    // F11, F12
+//                    if let currentVolume = getCurrentVolume() {
+//                        //                        print("Current Volume: \(currentVolume)%")
+//                        //                        let adjustedVolume: Float = floor((round(currentVolume * 10) / 10) / volumeStep) * volumeStep
+//                        //                        let adjustedVolume: Float = floor(currentVolume / volumeStep) * volumeStep
+//                        //                        var newVolume = adjustedVolume
+//                        var newVolume: Float = floor(currentVolume / volumeStep) * volumeStep
+//                        var messageString: String
+//                        var willChange = false
+//                        if (keyCode == 103) {    // F11
+//                            if (currentVolume == 0.0) {
+//                                messageString = "무음🚫"
+//                            } else {
+//                                messageString = "감소⬇️"
+//                                if ((currentVolume - newVolume) < floatPrecision) {
+//                                    newVolume -= volumeStep
+//                                }
+//                                willChange = true
+//                            }
+//                        } else {
+//                            if (currentVolume == 1.0) {
+//                                messageString = "최대📢"
+//                            } else {
+//                                messageString = "증가⬆️"
+//                                newVolume += volumeStep
+//                                if ((newVolume - currentVolume) < floatPrecision) {
+//                                    newVolume += volumeStep
+//                                }
+//                                willChange = true
+//                            }
+//                        }
+//                        if (newVolume > 1.0) {
+//                            newVolume = 1.0
+//                        } else if (newVolume < 0.0) {
+//                            newVolume = 0.0
+//                        }
+//                        //                        print("\(currentVolume) -> \(adjustedVolume) -> \(newVolume)")
+//                        if (willChange) {
+//                            setVolume(volume: newVolume)
+//                        }
+//                        overlayWindow.setMessage(message: "🔈볼륨 \(messageString) \(Int(round(newVolume * 100)))")
+//                        overlayWindow.showFor(seconds: 2)
+//                    }
+//                }
+            } else if (modifierString == "shift") {
+                if (keyCode == 80) {    // F19
+                    HIDPostAuxKey(key: NX_KEYTYPE_SOUND_UP)
+                } else if (keyCode == 79) {    // F18
+                    HIDPostAuxKey(key: NX_KEYTYPE_SOUND_DOWN)
+                } else if (keyCode == 64) {    // F17
+                    HIDPostAuxKey(key: NX_KEYTYPE_PLAY)
                 }
             }
 //            print("Key down: \(modifierString)+\(keyCode)")
@@ -209,9 +247,10 @@ print("""
 ===================================================================
   HotkeyBlackdeer - https://github.com/BlackdeerY/HotkeyBlackdeer
 -------------------------------------------------------------------
-* Option + F12: KakaoTalk Run/Quit.
-* Option + Shift + F11: Volume Decrease.
-* Option + Shift + F12: Volume Increase.
+* Option + F12: Run/Quit KakaoTalk.
+* Shift + F17: Play/Stop Media.
+* Shift + F18: Decrease Volume.
+* Shift + F19: Increase Volume.
 ===================================================================
 """)
 

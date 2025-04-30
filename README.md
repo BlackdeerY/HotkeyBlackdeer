@@ -3,8 +3,9 @@ Mac Command Line Tool With Key Detection For Blackdeer.
 
 ## 단축키
 * Option + F12: 카카오톡 실행/종료.
-* Option + Shift + F11: 볼륨 감소.
-* Option + Shift + F12: 볼륨 증가.
+* Shift + F17: 미디어 재생/정지.
+* Shift + F18: 볼륨 감소.
+* Shift + F19: 볼륨 증가.
 
 ## 사용법
 직접 빌드하여 사용 혹은 첨부된 /Products/usr/local/bin/HotkeyBlackdeer 를 사용.
