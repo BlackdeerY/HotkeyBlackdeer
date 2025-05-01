@@ -397,10 +397,32 @@ guard let eventTap = CGEvent.tapCreate(
 //                    }
 //                }
             } else if (modifierString == "shift") {
-                if (keyCode == 80) {    // F19
-                    HIDPostAuxKey(key: NX_KEYTYPE_SOUND_UP)
-                } else if (keyCode == 79) {    // F18
-                    HIDPostAuxKey(key: NX_KEYTYPE_SOUND_DOWN)
+                if (keyCode == 80 || keyCode == 79) {
+                    let prevVolume: Float? = getCurrentVolume()
+                    if (keyCode == 80) {    // F19
+                        HIDPostAuxKey(key: NX_KEYTYPE_SOUND_UP)
+                    } else if (keyCode == 79) {    // F18
+                        HIDPostAuxKey(key: NX_KEYTYPE_SOUND_DOWN)
+                    }
+                    if (prevVolume != nil) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100), execute: {
+                            let newVolume: Float? = getCurrentVolume()
+                            if (newVolume != nil) {
+                                var messageString: String
+                                if (newVolume! > prevVolume!) {
+                                    messageString = "증가⬆️"
+                                } else if (newVolume! < prevVolume!) {
+                                    messageString = "감소⬇️"
+                                } else if (prevVolume! == 1.0) {
+                                    messageString = "최대📢"
+                                } else {
+                                    messageString = "무음🚫"
+                                }
+                                overlayWindow.setMessage(message: "🔈볼륨 \(messageString) \(Int(round(newVolume! * 100)))")
+                                overlayWindow.showFor(seconds: 2)
+                            }
+                        })
+                    }
                 } else if (keyCode == 64) {    // F17
                     let isPlaying = detectPlayingByAppleScript()
                     if (isPlaying) {
