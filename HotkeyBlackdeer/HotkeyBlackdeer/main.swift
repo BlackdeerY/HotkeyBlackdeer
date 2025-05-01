@@ -1,13 +1,81 @@
 import Cocoa
 import CoreAudio
 import AudioToolbox
+import Foundation
 
-//func runAppleScript(appleScript: String) {
-//    var error: NSDictionary?
-//    if let scriptObject = NSAppleScript(source: appleScript) {
-//        scriptObject.executeAndReturnError(&error)
-//    }
-//}
+func runAppleScript(appleScript: String) {
+    var error: NSDictionary?
+    if let scriptObject = NSAppleScript(source: appleScript) {
+        scriptObject.executeAndReturnError(&error)
+    }
+}
+
+let applescriptAudioOutputToAirPlay = """
+    set nextDeviceName to "홈팟미니" 
+
+    tell application "System Events" to tell process "ControlCenter"
+        repeat with menuBarItem in every menu bar item of menu bar 1
+            if description of menuBarItem as text is "사운드" then
+                set soundMenuBarItem to menuBarItem
+                exit repeat
+            end if
+        end repeat
+        
+        click soundMenuBarItem
+        
+        set currentDevice to (first checkbox of scroll area 1 of group 1 of window "제어 센터" whose value is 1)
+        set currentDeviceId to (value of attribute "AXIdentifier" of currentDevice)
+        set currentDeviceName to text 14 thru -1 of currentDeviceId
+
+        if currentDeviceName is not equal to nextDeviceName then
+            delay 0.2
+            repeat with currentCheckbox in every checkbox of scroll area 1 of group 1 of window "제어 센터"
+                set deviceId to value of attribute "AXIdentifier" of currentCheckbox
+                set deviceName to text 14 thru -1 of deviceId
+                if deviceName as string is equal to nextDeviceName as string then
+                    click currentCheckbox
+                    exit repeat
+                end if
+            end repeat
+        end if
+
+        click soundMenuBarItem
+        
+    end tell
+"""
+
+//let applescriptAudioOutputToBlackHole16ch = """
+//    set nextDeviceName to "BlackHole 16ch" 
+//
+//    tell application "System Events" to tell process "ControlCenter"
+//        repeat with menuBarItem in every menu bar item of menu bar 1
+//            if description of menuBarItem as text is "사운드" then
+//                set soundMenuBarItem to menuBarItem
+//                exit repeat
+//            end if
+//        end repeat
+//        
+//        click soundMenuBarItem
+//        
+//        set currentDevice to (first checkbox of scroll area 1 of group 1 of window "제어 센터" whose value is 1)
+//        set currentDeviceId to (value of attribute "AXIdentifier" of currentDevice)
+//        set currentDeviceName to text 14 thru -1 of currentDeviceId
+//
+//        if currentDeviceName is not equal to nextDeviceName then
+//            repeat with currentCheckbox in every checkbox of scroll area 1 of group 1 of window "제어 센터"
+//                set deviceId to value of attribute "AXIdentifier" of currentCheckbox
+//                set deviceName to text 14 thru -1 of deviceId
+//                if deviceName as string is equal to nextDeviceName as string then
+//                    click currentCheckbox
+//                    exit repeat
+//                end if
+//            end repeat
+//        end if
+//
+//        click soundMenuBarItem
+//        
+//    end tell
+//"""
 
 let kakaoTalkAppBundleIdentifier = "com.kakao.KakaoTalkMac"
 
@@ -142,6 +210,82 @@ func HIDPostAuxKey(key: UInt32) {
     doKey(down: false)
 }
 
+func setDefaultOutputDevice(deviceName: String) -> Bool {
+    var result = false
+    
+    var propertySize = UInt32(MemoryLayout<AudioDeviceID>.size * 32)
+    var devices = [AudioDeviceID](repeating: 0, count: 32)
+    var address = AudioObjectPropertyAddress(
+        mSelector: kAudioHardwarePropertyDevices,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain
+    )
+
+    let status = AudioObjectGetPropertyData(
+        AudioObjectID(kAudioObjectSystemObject),
+        &address,
+        0,
+        nil,
+        &propertySize,
+        &devices
+    )
+
+    if status != noErr {
+        print("Error getting device list")
+        return result
+    }
+
+    let deviceCount = Int(propertySize) / MemoryLayout<AudioDeviceID>.size
+
+    for i in 0..<deviceCount {
+        var deviceNameCF: CFString = "" as CFString
+        var size = UInt32(MemoryLayout<CFString>.size)
+        var nameAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyDeviceNameCFString,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let nameStatus = AudioObjectGetPropertyData(
+            devices[i],
+            &nameAddress,
+            0,
+            nil,
+            &size,
+            &deviceNameCF
+        )
+
+        if nameStatus == noErr, deviceName == (deviceNameCF as String) {
+            var defaultOutputAddress = AudioObjectPropertyAddress(
+                mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+
+            var outputDeviceID = devices[i]
+            let setStatus = AudioObjectSetPropertyData(
+                AudioObjectID(kAudioObjectSystemObject),
+                &defaultOutputAddress,
+                0,
+                nil,
+                UInt32(MemoryLayout<AudioDeviceID>.size),
+                &outputDeviceID
+            )
+
+            if setStatus != noErr {
+                print("Failed to set output device")
+            } else {
+                result = true
+//                print("Output device set to \(deviceName)")
+            }
+
+            return result
+        }
+    }
+
+    print("Device named '\(deviceName)' not found")
+    return result
+}
+
 let eventMask = (1 << CGEventType.keyDown.rawValue)
 
 guard let eventTap = CGEvent.tapCreate(
@@ -155,9 +299,9 @@ guard let eventTap = CGEvent.tapCreate(
 
         var modifiers: [String] = []
         if flags.contains(.maskCommand) { modifiers.append("cmd") }
+        if flags.contains(.maskControl) { modifiers.append("ctrl") }
         if flags.contains(.maskAlternate) { modifiers.append("option") }
         if flags.contains(.maskShift) { modifiers.append("shift") }
-        if flags.contains(.maskControl) { modifiers.append("ctrl") }
 
         let modifierString = modifiers.joined(separator: "+")
         if modifierString.isEmpty {
@@ -232,6 +376,20 @@ guard let eventTap = CGEvent.tapCreate(
                 } else if (keyCode == 64) {    // F17
                     HIDPostAuxKey(key: NX_KEYTYPE_PLAY)
                 }
+            } else if (modifierString == "ctrl+option+shift") {
+                if (keyCode == 79) {    // F18
+                    let isOK = setDefaultOutputDevice(deviceName: "BlackHole 16ch")
+                    if (isOK) {
+                        overlayWindow.setMessage(message: "🔈사운드 출력: 기본🟢")
+                    } else {
+                        overlayWindow.setMessage(message: "🔈사운드 출력 변경 실패⚠️")
+                    }
+                    overlayWindow.showFor(seconds: 2)
+                } else if (keyCode == 80) {    // F19
+                    runAppleScript(appleScript: applescriptAudioOutputToAirPlay)
+                    overlayWindow.setMessage(message: "🔈사운드 출력: 홈팟미니🛜")
+                    overlayWindow.showFor(seconds: 2)
+                }
             }
 //            print("Key down: \(modifierString)+\(keyCode)")
         }
@@ -251,6 +409,8 @@ print("""
 * Shift + F17: Play/Stop Media.
 * Shift + F18: Decrease Volume.
 * Shift + F19: Increase Volume.
+* Ctrl + Option + Shift + F18: Audio Output Device to Default.
+* Ctrl + Option + Shift + F19: Audio Output Device to AirPlay.
 ===================================================================
 """)
 

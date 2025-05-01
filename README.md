@@ -6,6 +6,8 @@ Mac Command Line Tool With Key Detection For Blackdeer.
 * Shift + F17: 미디어 재생/정지.
 * Shift + F18: 볼륨 감소.
 * Shift + F19: 볼륨 증가.
+* Ctrl + Option + Shift + F18: 사운드 출력 기기를 일반 기기로 변경.
+* Ctrl + Option + Shift + F19: 사운드 출력 기기를 홈팟 미니(AirPlay)로 변경.
 
 ## 사용법
 직접 빌드하여 사용 혹은 첨부된 /Products/usr/local/bin/HotkeyBlackdeer 를 사용.
