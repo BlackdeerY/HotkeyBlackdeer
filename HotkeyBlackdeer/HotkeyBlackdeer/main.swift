@@ -10,6 +10,23 @@ func runAppleScript(appleScript: String) {
     }
 }
 
+func detectPlayingByAppleScript() -> Bool {
+    if let script = NSAppleScript(source: applescriptDetectPlaying) {
+        var error: NSDictionary?
+        let result = script.executeAndReturnError(&error)
+        
+        if let error = error {
+            print("AppleScript Error: \(error)")
+        } else {
+            let resultBool = result.booleanValue
+            return resultBool
+        }
+    } else {
+        print("AppleScript Create Fail.")
+    }
+    return false
+}
+
 let applescriptAudioOutputToAirPlay = """
     set nextDeviceName to "홈팟미니" 
 
@@ -42,6 +59,17 @@ let applescriptAudioOutputToAirPlay = """
         click soundMenuBarItem
         
     end tell
+"""
+
+let applescriptDetectPlaying = """
+    tell application "System Events" to tell process "ControlCenter"
+        repeat with menuBarItem in every menu bar item of menu bar 1
+            if description of menuBarItem as text is "지금 재생 중" then
+                return true
+            end if
+        end repeat
+    end tell
+    return false
 """
 
 //let applescriptAudioOutputToBlackHole16ch = """
@@ -374,7 +402,10 @@ guard let eventTap = CGEvent.tapCreate(
                 } else if (keyCode == 79) {    // F18
                     HIDPostAuxKey(key: NX_KEYTYPE_SOUND_DOWN)
                 } else if (keyCode == 64) {    // F17
-                    HIDPostAuxKey(key: NX_KEYTYPE_PLAY)
+                    let isPlaying = detectPlayingByAppleScript()
+                    if (isPlaying) {
+                        HIDPostAuxKey(key: NX_KEYTYPE_PLAY)
+                    }
                 }
             } else if (modifierString == "ctrl+option+shift") {
                 if (keyCode == 79) {    // F18
