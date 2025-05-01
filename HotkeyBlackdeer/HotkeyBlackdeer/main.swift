@@ -408,18 +408,20 @@ guard let eventTap = CGEvent.tapCreate(
                         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100), execute: {
                             let newVolume: Float? = getCurrentVolume()
                             if (newVolume != nil) {
-                                var messageString: String
-                                if (newVolume! > prevVolume!) {
+                                var messageString: String?
+                                if (newVolume! == 1.0) {
+                                    messageString = "최대📢"
+                                } else if (newVolume! == 0.0) {
+                                    messageString = "무음🚫"
+                                } else if (newVolume! > prevVolume!) {
                                     messageString = "증가⬆️"
                                 } else if (newVolume! < prevVolume!) {
                                     messageString = "감소⬇️"
-                                } else if (prevVolume! == 1.0) {
-                                    messageString = "최대📢"
-                                } else {
-                                    messageString = "무음🚫"
                                 }
-                                overlayWindow.setMessage(message: "🔈볼륨 \(messageString) \(Int(round(newVolume! * 100)))")
-                                overlayWindow.showFor(seconds: 2)
+                                if (messageString != nil) {
+                                    overlayWindow.setMessage(message: "🔈볼륨 \(messageString!) \(Int(round(newVolume! * 100)))")
+                                    overlayWindow.showFor(seconds: 2)
+                                }
                             }
                         })
                     }
