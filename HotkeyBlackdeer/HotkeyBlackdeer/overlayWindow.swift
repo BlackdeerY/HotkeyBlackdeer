@@ -53,6 +53,9 @@ class OverlayWindow: NSWindow {
     func scheduleWindowClose(seconds: Int) {
         // 이전 작업이 있다면 취소
         closeWindowWorkItem?.cancel()
+        
+        // 잔상 방지를 위해 기존 팝업이 있다면 사라지게. 대신 새 팝업이 뜨면서 깜빡이는 것처럼 보일 수 있음.
+        self.orderOut(nil)
 
         // 새로운 작업 생성
         let newWorkItem = DispatchWorkItem { [weak self] in
@@ -98,7 +101,7 @@ class OverlayWindow: NSWindow {
             self.setFrameOrigin(NSPoint(x: centerX, y: centerY))
         }
         
-        self.orderFrontRegardless()
         scheduleWindowClose(seconds: seconds)
+        self.orderFrontRegardless()
     }
 }
