@@ -343,13 +343,23 @@ guard let eventTap = CGEvent.tapCreate(
                         overlayWindow.setMessage(message: "💬카카오톡 종료❌")
                     } else {
                         if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: kakaoTalkAppBundleIdentifier) {
-                            try? NSWorkspace.shared.open(appURL)
-                            overlayWindow.setMessage(message: "💬카카오톡 실행🟢")
+                            let openKakaoTalkSuccess = try? NSWorkspace.shared.open(appURL)
+                            if (openKakaoTalkSuccess == nil) {
+                                overlayWindow.setMessage(message: "💬카카오톡 실행 실패⚠️")
+                                print("(try? NSWorkspace.shared.open(appURL) try 실패!!)")
+                            } else if (openKakaoTalkSuccess!) {
+                                overlayWindow.setMessage(message: "💬카카오톡 실행🟢")
+                            } else {
+                                overlayWindow.setMessage(message: "💬카카오톡 실행 실패⚠️")
+                                print("(NSWorkspace.shared.open(appURL) 성공했지만 앱 실행은 실패!!)")
+                            }
                         } else {
-                            overlayWindow.setMessage(message: "💬카카오톡 필요⚠️")
+                            overlayWindow.setMessage(message: "💬카카오톡 설치 필요⚠️")
                         }
                     }
-                    overlayWindow.showFor(seconds: 2)
+                    DispatchQueue.main.async {
+                        overlayWindow.showFor(seconds: 2)
+                    }
                 }
 //            } else if (modifierString == "option+shift") {
 //                if (keyCode == 103 || keyCode == 111) {    // F11, F12
@@ -417,13 +427,22 @@ guard let eventTap = CGEvent.tapCreate(
                                     messageString = "증가⬆️"
                                 } else if (newVolume! < prevVolume!) {
                                     messageString = "감소⬇️"
+                                } else {
+                                    messageString = "그대로"
+                                    print("(볼륨이 최소나 최대가 아닌데도 볼륨을 변경하지 못 했음!!)")
                                 }
                                 if (messageString != nil) {
                                     overlayWindow.setMessage(message: "🔈볼륨 \(messageString!) \(Int(round(newVolume! * 100)))")
-                                    overlayWindow.showFor(seconds: 2)
+                                    DispatchQueue.main.async {
+                                        overlayWindow.showFor(seconds: 2)
+                                    }
+                                } else {
+                                    print("(새 볼륨을 가져오지 못 했음!!)")
                                 }
                             }
                         })
+                    } else {
+                        print("(기존 볼륨을 가져오지 못 했음!!)")
                     }
                 } else if (keyCode == 64) {    // F17
                     let isPlaying = detectPlayingByAppleScript()
@@ -439,11 +458,15 @@ guard let eventTap = CGEvent.tapCreate(
                     } else {
                         overlayWindow.setMessage(message: "🔈사운드 출력 변경 실패⚠️")
                     }
-                    overlayWindow.showFor(seconds: 2)
+                    DispatchQueue.main.async {
+                        overlayWindow.showFor(seconds: 2)
+                    }
                 } else if (keyCode == 80) {    // F19
                     runAppleScript(appleScript: applescriptAudioOutputToAirPlay)
                     overlayWindow.setMessage(message: "🔈사운드 출력: 홈팟미니🛜")
-                    overlayWindow.showFor(seconds: 2)
+                    DispatchQueue.main.async {
+                        overlayWindow.showFor(seconds: 2)
+                    }
                 }
             }
 //            print("Key down: \(modifierString)+\(keyCode)")

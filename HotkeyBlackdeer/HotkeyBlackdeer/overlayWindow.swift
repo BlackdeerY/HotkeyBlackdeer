@@ -50,13 +50,19 @@ class OverlayWindow: NSWindow {
         self.label.stringValue = message
     }
     
+    private var isShowing = false
+    
     func scheduleWindowClose(seconds: Int) {
         // 이전 작업이 있다면 취소
         closeWindowWorkItem?.cancel()
 
         // 새로운 작업 생성
-        let newWorkItem = DispatchWorkItem {
-            self.orderOut(nil)
+        let newWorkItem = DispatchWorkItem { [weak self] in
+//            self.orderOut(nil)
+            DispatchQueue.main.async {
+                self?.orderOut(nil)
+                self?.isShowing = false
+            }
         }
 
         // 새 작업을 저장
@@ -95,7 +101,11 @@ class OverlayWindow: NSWindow {
             self.setFrameOrigin(NSPoint(x: centerX, y: centerY))
         }
         
-        self.orderFrontRegardless()
+        if (!isShowing) {
+            self.orderFrontRegardless()
+            isShowing = true
+        }
+        
         scheduleWindowClose(seconds: seconds)
     }
 }
