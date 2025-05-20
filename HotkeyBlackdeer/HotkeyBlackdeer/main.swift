@@ -314,13 +314,13 @@ func setDefaultOutputDevice(deviceName: String) -> Bool {
     return result
 }
 
-let eventMask = (1 << CGEventType.keyDown.rawValue)
+//let eventMask = (1 << CGEventType.keyDown.rawValue)
 
 guard let eventTap = CGEvent.tapCreate(
     tap: .cgSessionEventTap,
     place: .headInsertEventTap,
     options: .defaultTap,
-    eventsOfInterest: CGEventMask(eventMask),
+    eventsOfInterest: CGEventMask(1 << CGEventType.keyDown.rawValue),
     callback: { _, _, event, _ in
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
@@ -495,4 +495,12 @@ print("""
 let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
 CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
 CGEvent.tapEnable(tap: eventTap, enable: true)
+
+Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+    if (!CGEvent.tapIsEnabled(tap: eventTap)) {
+        print("🔄 Event tap is disabled. Trying to re-enable...")
+        CGEvent.tapEnable(tap: eventTap, enable: true)
+    }
+}
+
 CFRunLoopRun()
