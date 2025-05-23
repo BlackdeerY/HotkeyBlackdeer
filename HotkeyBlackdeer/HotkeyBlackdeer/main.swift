@@ -316,6 +316,16 @@ func setDefaultOutputDevice(deviceName: String) -> Bool {
 
 //let eventMask = (1 << CGEventType.keyDown.rawValue)
 
+func activateKakaoTalk() {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+    process.arguments = ["-e", "tell application \"KakaoTalk\" to activate"]
+    
+    try? process.run()
+    
+    return
+}
+
 guard let eventTap = CGEvent.tapCreate(
     tap: .cgSessionEventTap,
     place: .headInsertEventTap,
@@ -342,17 +352,24 @@ guard let eventTap = CGEvent.tapCreate(
                         app.terminate()
                         overlayWindow.setMessage(message: "💬카카오톡 종료❌")
                     } else {
-                        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: kakaoTalkAppBundleIdentifier) {
-                            let openKakaoTalkSuccess = try? NSWorkspace.shared.open(appURL)
-                            if (openKakaoTalkSuccess == nil) {
-                                overlayWindow.setMessage(message: "💬카카오톡 실행 실패⚠️")
-                                print("(try? NSWorkspace.shared.open(appURL) try 실패!!)")
-                            } else if (openKakaoTalkSuccess!) {
-                                overlayWindow.setMessage(message: "💬카카오톡 실행🟢")
-                            } else {
-                                overlayWindow.setMessage(message: "💬카카오톡 실행 실패⚠️")
-                                print("(NSWorkspace.shared.open(appURL) 성공했지만 앱 실행은 실패!!)")
-                            }
+//                        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: kakaoTalkAppBundleIdentifier) {
+                        if NSWorkspace.shared.urlForApplication(withBundleIdentifier: kakaoTalkAppBundleIdentifier) != nil {
+                            overlayWindow.setMessage(message: "💬카카오톡 실행🟢")
+                            activateKakaoTalk()
+//                            let openKakaoTalkSuccess = try? NSWorkspace.shared.open(appURL)
+//                            if (openKakaoTalkSuccess == nil) {
+//                                overlayWindow.setMessage(message: "💬카카오톡 실행 실패⚠️")
+//                                print("(try? NSWorkspace.shared.open(appURL) try 실패!!)")
+//                            } else if (openKakaoTalkSuccess!) {
+//                                overlayWindow.setMessage(message: "💬카카오톡 실행🟢")
+//                                let runningAppsAfterLaunch = NSWorkspace.shared.runningApplications
+//                                if let appLaunched = runningAppsAfterLaunch.first(where: { $0.bundleIdentifier == kakaoTalkAppBundleIdentifier }) {
+//                                    appLaunched.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+//                                }
+//                            } else {
+//                                overlayWindow.setMessage(message: "💬카카오톡 실행 실패⚠️")
+//                                print("(NSWorkspace.shared.open(appURL) 성공했지만 앱 실행은 실패!!)")
+//                            }
                         } else {
                             overlayWindow.setMessage(message: "💬카카오톡 설치 필요⚠️")
                         }
